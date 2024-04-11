@@ -1,14 +1,15 @@
 import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.metrics import mean_squared_error, r2_score
 from math import sqrt
+from numpy import mean, std
 
 # 加载数据
 df = pd.read_csv('/Users/daydream/Desktop/data of RFSI.csv')
 
-# 准备数据 - 假设 'x' 和 'y' 是特征，'UrineIod_1' 是你想要预测的目标变量
-X = df[['x', 'y']]  # 特征
+# 准备数据 - 假设 'x', 'y', 和 'ThyroidV_1' 是特征
+X = df[['x', 'y', 'ThyroidV_1']]  # 更新特征集
 y = df['UrineIod_1']  # 目标变量
 
 # 将数据集拆分为训练集和测试集
@@ -23,38 +24,16 @@ regressor.fit(X_train, y_train)
 # 在测试集上进行预测
 y_pred = regressor.predict(X_test)
 
-# 计算均方根误差
+# 计算均方根误差 (RMSE) 和 R² 分数
 rmse = sqrt(mean_squared_error(y_test, y_pred))
+r2 = r2_score(y_test, y_pred)
+
 print(f'均方根误差: {rmse}')
+print(f'R² 分数: {r2}')
 
-# 假设你有一个包含缺失值的DataFrame，名为 df_missing
-# 加载包含缺失值的数据
-df_missing = pd.read_csv('/Users/daydream/Desktop/missing value.csv')
+# 使用交叉验证来评估模型
+cv_rmse = cross_val_score(regressor, X, y, scoring='neg_root_mean_squared_error', cv=5)
+cv_r2 = cross_val_score(regressor, X, y, scoring='r2', cv=5)
 
-# 准备缺失值数据
-missing_values = df_missing[['x', 'y']]
-
-# 使用回归器预测缺失值
-predicted_values = regressor.predict(missing_values)
-
-# 查看df_missing的前几行确保数据加载正确
-print(df_missing.head())
-
-# 打印预测值
-print(predicted_values)
-
-print(df_missing[['x', 'y', 'UrineIod_1']].head())
-
-
-# 回填预测值
-df_missing['UrineIod_1'] = predicted_values
-
-# 查看回填后的df_missing的前几行
-print(df_missing.head())
-
-# 保存df_missing到CSV文件
-df_missing.to_csv('/Users/daydream/Desktop/missing_values_filled.csv', index=False)
-
-
-
-
+print(f'交叉验证 RMSE: 均值 = {-mean(cv_rmse)}, 标准差 = {std(cv_rmse)}')
+print(f'交叉验证 R²: 均值 = {mean(cv_r2)}, 标准差 = {std(cv_r2)}')
